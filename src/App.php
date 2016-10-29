@@ -33,7 +33,7 @@ class App
     public function getObject_fileCache()
     {
         CacheManager::setDefaultConfig(array(
-            "path"       => sys_get_temp_dir(),
+            "path"       => sys_get_temp_dir() . '/toya',
             'defaultTtl' => 900,
             'htaccess'   => false,
         ));
