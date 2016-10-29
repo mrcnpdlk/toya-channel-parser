@@ -1,0 +1,12 @@
+{
+    "version": "0.0.1",
+    "authors": [ {
+        "name": "Marcin Pudełek",
+        "email": "marcin@pudelek.org.pl",
+        "role": "Developer"
+    } ],
+    "require": {
+        "paquettg/php-html-parser": "^1.7.0",
+        "phpfastcache/phpfastcache": "6.0.0-alpha"
+    }
+}
