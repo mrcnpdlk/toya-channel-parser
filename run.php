@@ -8,7 +8,9 @@ use PHPHtmlParser\Dom;
 $htmlContent = null;
 
 CacheManager::setDefaultConfig(array(
-    "path" => __DIR__ . '/cache', // or in windows "C:/tmp/"
+    "path"       => __DIR__ . '/cache',
+    'defaultTtl' => 900,
+    'htaccess'   => false,
 ));
 
 $InstanceCache = CacheManager::getInstance('files');
