@@ -1,12 +1,21 @@
 {
     "version": "0.0.1",
+    "name": "mrcnpdlk/toya-channel-parser",
+    "description": "TOYA channel list",
+    "minimum-stability": "dev",
     "authors": [ {
         "name": "Marcin Pudełek",
         "email": "marcin@pudelek.org.pl",
         "role": "Developer"
     } ],
     "require": {
+        "php": ">=7.0.0",
         "paquettg/php-html-parser": "^1.7.0",
         "phpfastcache/phpfastcache": "6.0.0-alpha"
+    },
+    "autoload": {
+        "psr-4": {
+            "Mrcnpdlk\\Toya\\": "src/"
+        }
     }
 }

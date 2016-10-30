@@ -26,17 +26,30 @@ class Site
         if (is_null($CachedString->get())) {
             $CachedString->set(file_get_contents($url))->expiresAfter(3600);
             $this->oApp->fileCache->save($CachedString);
+<<<<<<< HEAD
         }
         $htmlContent = $CachedString->get();
+=======
+            $htmlContent = $CachedString->get();
+
+        } else {
+            $htmlContent = $CachedString->get();
+        }
+>>>>>>> 2c9a37f84395369cd39b954771ddc17b3934988a
 
         return $htmlContent;
     }
 
     private function parseChannels()
     {
+<<<<<<< HEAD
         $answer     = array();
         $hdChannels = array();
         $dom        = new Dom;
+=======
+        $answer = array();
+        $dom    = new Dom;
+>>>>>>> 2c9a37f84395369cd39b954771ddc17b3934988a
         $dom->setOptions([
             'removeStyles'  => true,
             'removeScripts' => true,
@@ -46,7 +59,11 @@ class Site
         $offers = $dom->find('#main_body', 0)->find('.offers')->find('.offer');
 
         foreach ($offers as $offer) {
+<<<<<<< HEAD
             $packageName        = trim($offer->find('.offer-title')->innerHtml);
+=======
+            $packageName        = $offer->find('.offer-title')->innerHtml;
+>>>>>>> 2c9a37f84395369cd39b954771ddc17b3934988a
             $channalesArray     = array();
             $channalesRealArray = array();
             $channels           = $offer->find('.offer-more-content-hidden')->find('.offer-more-channel-wrapper')->find('.offer-more-channel');
@@ -63,11 +80,16 @@ class Site
 
                 $isHd = preg_match('/HD$/', $channelName) ? true : false;
 
+<<<<<<< HEAD
                 $tmp = array(
+=======
+                $channalesArray[] = array(
+>>>>>>> 2c9a37f84395369cd39b954771ddc17b3934988a
                     'id'   => $channelId,
                     'name' => $channelName,
                     'isHd' => $isHd,
                 );
+<<<<<<< HEAD
 
                 $channalesArray[] = $tmp;
                 if ($isHd) {
@@ -86,6 +108,20 @@ class Site
                 }
                 if (!isset($channalesArray[$key]['betterQuality'])) {
                     $channalesRealArray[] = $ch;
+=======
+            }
+
+            usort($channalesArray, function ($item1, $item2) {
+                return strtolower($item1['name']) <=> strtolower($item2['name']);
+            });
+
+            foreach ($channalesArray as $key => $pos) {
+                if (isset($channalesArray[$key + 1]) && preg_match("/{$pos['name']} HD/", $channalesArray[$key + 1]['name'])) {
+                    $channalesArray[$key]['betterQuality'] = $channalesArray[$key + 1];
+                } else {
+                    $channalesArray[$key]['betterQuality'] = null;
+                    $channalesRealArray[]                  = $channalesArray[$key];
+>>>>>>> 2c9a37f84395369cd39b954771ddc17b3934988a
                 }
             }
 
@@ -95,17 +131,25 @@ class Site
                 'channelsAll'       => $channalesArray,
                 'channelsRealCount' => count($channalesRealArray),
                 'channelsReal'      => $channalesRealArray,
+<<<<<<< HEAD
                 'channelsHdCount'   => count($hdChannels),
+=======
+>>>>>>> 2c9a37f84395369cd39b954771ddc17b3934988a
             );
         }
         return $answer;
     }
+<<<<<<< HEAD
     private function getData()
+=======
+    public function getChannels()
+>>>>>>> 2c9a37f84395369cd39b954771ddc17b3934988a
     {
         $key          = 'toya-channels';
         $CachedString = $this->oApp->fileCache->getItem($key);
 
         if (is_null($CachedString->get())) {
+<<<<<<< HEAD
             $CachedString->set($this->parseChannels())->expiresAfter(3600);
             $this->oApp->fileCache->save($CachedString);
         }
@@ -131,5 +175,16 @@ class Site
             }
         }
         return array();
+=======
+            $CachedString->set($this->parseChannels())->expiresAfter(1);
+            $this->oApp->fileCache->save($CachedString);
+            $htmlContent = $CachedString->get();
+
+        } else {
+            $htmlContent = $CachedString->get();
+        }
+
+        return $htmlContent;
+>>>>>>> 2c9a37f84395369cd39b954771ddc17b3934988a
     }
 }
