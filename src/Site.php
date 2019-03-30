@@ -2,22 +2,35 @@
 
 namespace Mrcnpdlk\Toya;
 
+use Mrcnpdlk\Toya\Model\ChannelModel;
+use Mrcnpdlk\Toya\Model\ChannelResponseModel;
 use PHPHtmlParser\Dom;
 
 class Site
 {
 
-    protected $oApp;
+    /**
+     * @var \Mrcnpdlk\Toya\Config
+     */
+    protected $oConfig;
 
-    public function __construct()
+    public function __construct(Config $config)
     {
-        $this->oApp = App::getInstance();
+        $this->oConfig = $config;
     }
 
+    /**
+     * @param string $packageName
+     *
+     * @return array|mixed
+     * @throws \Mrcnpdlk\Lib\ModelMapException
+     * @throws \Mrcnpdlk\Toya\Exception
+     * @throws \Phpfastcache\Exceptions\PhpfastcacheInvalidArgumentException
+     */
     public function getChannelsForPackage(string $packageName)
     {
         foreach ($this->getData() as $key => $value) {
-            if ($value['packageName'] === $packageName) {
+            if ($value->pkgName === $packageName) {
                 return $value;
             }
         }
@@ -25,56 +38,78 @@ class Site
         return [];
     }
 
-    public function getPackages()
+    /**
+     * @return array
+     * @throws \Mrcnpdlk\Lib\ModelMapException
+     * @throws \Mrcnpdlk\Toya\Exception
+     * @throws \Phpfastcache\Exceptions\PhpfastcacheInvalidArgumentException
+     */
+    public function getPackages(): array
     {
         $answer = [];
         foreach ($this->getData() as $key => $value) {
-            $answer[] = $value['packageName'];
+            $answer[] = $value->pkgName;
         }
 
         return $answer;
     }
 
-    private function getData()
+    /**
+     * @return ChannelResponseModel[]
+     * @throws \Mrcnpdlk\Lib\ModelMapException
+     * @throws \Mrcnpdlk\Toya\Exception
+     * @throws \Phpfastcache\Exceptions\PhpfastcacheInvalidArgumentException
+     */
+    private function getData(): array
     {
         $key          = 'toya-channels';
-        $CachedString = $this->oApp->fileCache->getItem($key);
+        $CachedString = $this->oConfig->getCache()->getItem($key);
 
         if ($CachedString->get() === null) {
             $CachedString->set($this->parseChannels())->expiresAfter(3600);
-            $this->oApp->fileCache->save($CachedString);
+            $this->oConfig->getCache()->save($CachedString);
         }
+        /** @var array $htmlContent */
         $htmlContent = $CachedString->get();
 
         return $htmlContent;
     }
 
     /**
-     * @param string|null $url
-     *
-     * @return mixed
+     * @return string|null
+     * @throws \Phpfastcache\Exceptions\PhpfastcacheInvalidArgumentException
      */
-    private function getSiteContent(string $url = null)
+    private function getSiteContent(): ?string
     {
-        if ($url === null) {
-            $url = 'https://toya.net.pl/telewizja';
-        }
-
-        $key          = md5($url);
-        $CachedString = $this->oApp->fileCache->getItem($key);
+        $key          = md5($this->oConfig->getUrl());
+        $CachedString = $this->oConfig->getCache()->getItem($key);
 
         if ($CachedString->get() === null) {
-            $CachedString->set(file_get_contents($url))->expiresAfter(3600);
-            $this->oApp->fileCache->save($CachedString);
+            $CachedString->set(file_get_contents($this->oConfig->getUrl()))
+                         ->expiresAfter(3600)
+            ;
+            $this->oConfig
+                ->getCache()
+                ->save($CachedString)
+            ;
         }
+        /** @var string|null $htmlContent */
         $htmlContent = $CachedString->get();
 
         return $htmlContent;
     }
 
-    private function parseChannels()
+    /**
+     * @return ChannelResponseModel[]
+     * @throws \Mrcnpdlk\Lib\ModelMapException
+     * @throws \Phpfastcache\Exceptions\PhpfastcacheInvalidArgumentException
+     * @throws \Mrcnpdlk\Toya\Exception
+     */
+    private function parseChannels(): array
     {
-        $answer     = [];
+        /** @var ChannelResponseModel[] $answer */
+        $answer = [];
+        /** @var ChannelModel[] $hdChannels */
         $hdChannels = [];
         $dom        = new Dom;
         $dom->setOptions([
@@ -85,12 +120,16 @@ class Site
 
         $offers = $dom->find('#main_body', 0)->find('.offers')->find('.offer');
 
+        /** @var Dom[] $offers */
         foreach ($offers as $offer) {
-            $packageName        = trim($offer->find('.offer-title')->innerHtml);
-            $channelsArray     = [];
-            $channalesRealArray = [];
-            $channels           = $offer->find('.offer-more-content-hidden')->find('.offer-more-channel-wrapper')->find('.offer-more-channel');
+            $packageName = trim($offer->find('.offer-title')->innerHtml);
+            /** @var ChannelModel[] $channelsArray */
+            $channelsArray = [];
+            /** @var ChannelModel[] $channelsRealArray */
+            $channelsRealArray = [];
+            $channels          = $offer->find('.offer-more-content-hidden')->find('.offer-more-channel-wrapper')->find('.offer-more-channel');
 
+            /** @var Dom[] $channels */
             foreach ($channels as $channel) {
                 $channelName = trim($channel->find('.channel-tooltip')->find('img')->getAttribute('alt'));
                 $desc        = strip_tags($channel->find('.channel-tooltip-content')->innerHtml);
@@ -98,47 +137,54 @@ class Site
                 if (preg_match('/.*kanale: (\\d+)/', $desc, $matches)) {
                     $channelId = $matches[1];
                 } else {
-                    throw new Exception\Error("Not found channel ID for {$channelName}", 1);
+                    throw new Exception("Not found channel ID for {$channelName}", 1);
                 }
 
                 $isHd = preg_match('/HD$/', $channelName) ? true : false;
 
-                $tmp = [
-                    'id'   => $channelId,
-                    'name' => $channelName,
-                    'isHd' => $isHd,
-                ];
+                /** @var ChannelModel $chModel */
+                $chModel = $this
+                    ->oConfig
+                    ->getMapper()
+                    ->jsonMap(ChannelModel::class, [
+                        'number' => $channelId,
+                        'name'   => $channelName,
+                        'isHd'   => $isHd,
+                    ])
+                ;
 
-                $channelsArray[] = $tmp;
+                $channelsArray[] = $chModel;
                 if ($isHd) {
-                    $hdChannels[] = $tmp;
+                    $hdChannels[] = $chModel;
                 }
             }
 
             //szukamy czy kanal ma swoj odpowiednik w HD
             foreach ($channelsArray as $key => $ch) {
-                $channelsArray[$key]['betterQuality'] = null;
+                $channelsArray[$key]->betterQuality = null;
                 foreach ($hdChannels as $hd) {
-                    if (preg_match('/' . preg_quote($ch['name']) . '\s+HD/', $hd['name'])) {
-                        $channelsArray[$key]['betterQuality'] = $hd;
+                    if (preg_match('/' . preg_quote($ch->name) . '\s+HD/', $hd->name)) {
+                        $channelsArray[$key]->betterQuality = $hd;
                         continue;
                     }
                 }
-                if (!isset($channelsArray[$key]['betterQuality'])) {
-                    $channalesRealArray[] = $ch;
+                if (!isset($channelsArray[$key]->betterQuality)) {
+                    $channelsRealArray[] = $ch;
                 }
             }
 
-            $answer[] = [
-                'packageName'       => $packageName,
-                'channelsAllCount'  => count($channelsArray),
-                'channelsAll'       => $channelsArray,
-                'channelsRealCount' => count($channalesRealArray),
-                'channelsReal'      => $channalesRealArray,
-                'channelsHdCount'   => count($hdChannels),
-            ];
-        }
+            $answer[] = $this->oConfig->getMapper()->jsonMap(ChannelResponseModel::class, [
+                'pkgName'      => $packageName,
+                'allCount'     => count($channelsArray),
+                'channels'     => $channelsArray,
+                'realCount'    => count($channelsRealArray),
+                'channelsReal' => $channelsRealArray,
+                'hdCount'      => count($hdChannels),
+            ])
+            ;
 
+        }
+        
         return $answer;
     }
 }

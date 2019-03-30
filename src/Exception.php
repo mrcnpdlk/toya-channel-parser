@@ -2,7 +2,7 @@
 
 namespace Mrcnpdlk\Toya;
 
-class Exception extends \Exception
+class Exception extends \Mrcnpdlk\Lib\Exception
 {
 
 }
