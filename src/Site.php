@@ -163,7 +163,7 @@ class Site
             foreach ($channelsArray as $key => $ch) {
                 $channelsArray[$key]->betterQuality = null;
                 foreach ($hdChannels as $hd) {
-                    if (preg_match('/^' . preg_quote($ch->name) . '\s+HD/', $hd->name)) {
+                    if (preg_match('/^' . $ch->name . '\s+HD/', $hd->name)) {
                         $channelsArray[$key]->betterQuality = $hd;
                         continue;
                     }
