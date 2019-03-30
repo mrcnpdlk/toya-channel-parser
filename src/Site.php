@@ -22,12 +22,12 @@ class Site
     /**
      * @param string $packageName
      *
-     * @return array|mixed
+     * @return ChannelResponseModel|null
      * @throws \Mrcnpdlk\Lib\ModelMapException
      * @throws \Mrcnpdlk\Toya\Exception
      * @throws \Phpfastcache\Exceptions\PhpfastcacheInvalidArgumentException
      */
-    public function getChannelsForPackage(string $packageName)
+    public function getChannelsForPackage(string $packageName): ?ChannelResponseModel
     {
         foreach ($this->getData() as $key => $value) {
             if ($value->pkgName === $packageName) {
@@ -35,7 +35,7 @@ class Site
             }
         }
 
-        return [];
+        return null;
     }
 
     /**
@@ -109,8 +109,6 @@ class Site
     {
         /** @var ChannelResponseModel[] $answer */
         $answer = [];
-        /** @var ChannelModel[] $hdChannels */
-        $hdChannels = [];
         $dom        = new Dom;
         $dom->setOptions([
             'removeStyles'  => true,
@@ -122,6 +120,8 @@ class Site
 
         /** @var Dom[] $offers */
         foreach ($offers as $offer) {
+            /** @var ChannelModel[] $hdChannels */
+            $hdChannels = [];
             $packageName = trim($offer->find('.offer-title')->innerHtml);
             /** @var ChannelModel[] $channelsArray */
             $channelsArray = [];
@@ -163,7 +163,7 @@ class Site
             foreach ($channelsArray as $key => $ch) {
                 $channelsArray[$key]->betterQuality = null;
                 foreach ($hdChannels as $hd) {
-                    if (preg_match('/' . preg_quote($ch->name) . '\s+HD/', $hd->name)) {
+                    if (preg_match('/^' . preg_quote($ch->name) . '\s+HD/', $hd->name)) {
                         $channelsArray[$key]->betterQuality = $hd;
                         continue;
                     }
@@ -184,7 +184,7 @@ class Site
             ;
 
         }
-        
+
         return $answer;
     }
 }
