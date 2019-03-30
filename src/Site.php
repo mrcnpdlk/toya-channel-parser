@@ -14,16 +14,56 @@ class Site
         $this->oApp = App::getInstance();
     }
 
+    public function getChannelsForPackage(string $packageName)
+    {
+        foreach ($this->getData() as $key => $value) {
+            if ($value['packageName'] === $packageName) {
+                return $value;
+            }
+        }
+
+        return [];
+    }
+
+    public function getPackages()
+    {
+        $answer = [];
+        foreach ($this->getData() as $key => $value) {
+            $answer[] = $value['packageName'];
+        }
+
+        return $answer;
+    }
+
+    private function getData()
+    {
+        $key          = 'toya-channels';
+        $CachedString = $this->oApp->fileCache->getItem($key);
+
+        if ($CachedString->get() === null) {
+            $CachedString->set($this->parseChannels())->expiresAfter(3600);
+            $this->oApp->fileCache->save($CachedString);
+        }
+        $htmlContent = $CachedString->get();
+
+        return $htmlContent;
+    }
+
+    /**
+     * @param string|null $url
+     *
+     * @return mixed
+     */
     private function getSiteContent(string $url = null)
     {
         if ($url === null) {
             $url = 'https://toya.net.pl/telewizja';
         }
 
-        $key          = $url;
+        $key          = md5($url);
         $CachedString = $this->oApp->fileCache->getItem($key);
 
-        if (is_null($CachedString->get())) {
+        if ($CachedString->get() === null) {
             $CachedString->set(file_get_contents($url))->expiresAfter(3600);
             $this->oApp->fileCache->save($CachedString);
         }
@@ -34,8 +74,8 @@ class Site
 
     private function parseChannels()
     {
-        $answer     = array();
-        $hdChannels = array();
+        $answer     = [];
+        $hdChannels = [];
         $dom        = new Dom;
         $dom->setOptions([
             'removeStyles'  => true,
@@ -47,8 +87,8 @@ class Site
 
         foreach ($offers as $offer) {
             $packageName        = trim($offer->find('.offer-title')->innerHtml);
-            $channalesArray     = array();
-            $channalesRealArray = array();
+            $channelsArray     = [];
+            $channalesRealArray = [];
             $channels           = $offer->find('.offer-more-content-hidden')->find('.offer-more-channel-wrapper')->find('.offer-more-channel');
 
             foreach ($channels as $channel) {
@@ -63,73 +103,42 @@ class Site
 
                 $isHd = preg_match('/HD$/', $channelName) ? true : false;
 
-                $tmp = array(
+                $tmp = [
                     'id'   => $channelId,
                     'name' => $channelName,
                     'isHd' => $isHd,
-                );
+                ];
 
-                $channalesArray[] = $tmp;
+                $channelsArray[] = $tmp;
                 if ($isHd) {
                     $hdChannels[] = $tmp;
                 }
             }
 
             //szukamy czy kanal ma swoj odpowiednik w HD
-            foreach ($channalesArray as $key => $ch) {
-                $channalesArray[$key]['betterQuality'] = null;
+            foreach ($channelsArray as $key => $ch) {
+                $channelsArray[$key]['betterQuality'] = null;
                 foreach ($hdChannels as $hd) {
                     if (preg_match('/' . preg_quote($ch['name']) . '\s+HD/', $hd['name'])) {
-                        $channalesArray[$key]['betterQuality'] = $hd;
+                        $channelsArray[$key]['betterQuality'] = $hd;
                         continue;
                     }
                 }
-                if (!isset($channalesArray[$key]['betterQuality'])) {
+                if (!isset($channelsArray[$key]['betterQuality'])) {
                     $channalesRealArray[] = $ch;
                 }
             }
 
-            $answer[] = array(
+            $answer[] = [
                 'packageName'       => $packageName,
-                'channelsAllCount'  => count($channalesArray),
-                'channelsAll'       => $channalesArray,
+                'channelsAllCount'  => count($channelsArray),
+                'channelsAll'       => $channelsArray,
                 'channelsRealCount' => count($channalesRealArray),
                 'channelsReal'      => $channalesRealArray,
                 'channelsHdCount'   => count($hdChannels),
-            );
+            ];
         }
+
         return $answer;
-    }
-    private function getData()
-    {
-        $key          = 'toya-channels';
-        $CachedString = $this->oApp->fileCache->getItem($key);
-
-        if (is_null($CachedString->get())) {
-            $CachedString->set($this->parseChannels())->expiresAfter(3600);
-            $this->oApp->fileCache->save($CachedString);
-        }
-        $htmlContent = $CachedString->get();
-
-        return $htmlContent;
-    }
-
-    public function getPackages()
-    {
-        $answer = array();
-        foreach ($this->getData() as $key => $value) {
-            $answer[] = $value['packageName'];
-        }
-        return $answer;
-    }
-
-    public function getChannelsForPackage(string $packageName)
-    {
-        foreach ($this->getData() as $key => $value) {
-            if ($value['packageName'] === $packageName) {
-                return $value;
-            }
-        }
-        return array();
     }
 }
